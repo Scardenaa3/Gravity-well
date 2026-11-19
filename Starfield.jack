@@ -1,0 +1,79 @@
+/**
+ * Starfield: fondo movil de estrellas en dos capas (paralaje).
+ * Las estrellas lejanas (velocidad 1) y cercanas (velocidad 2) se
+ * desplazan a distinta velocidad para dar sensacion de profundidad.
+ * Cada estrella es un solo pixel (Screen.drawPixel).
+ *
+ * Los planetas se dibujan de forma incremental, por eso una estrella
+ * nunca borra ni pinta un pixel que caiga dentro de la caja de un planeta.
+ */
+class Starfield {
+    field Array sx, sy, sv;    // posicion x, posicion y, velocidad
+    field int n;
+
+    constructor Starfield new(int count) {
+        let n = count;
+        let sx = Array.new(n);
+        let sy = Array.new(n);
+        let sv = Array.new(n);
+        return this;
+    }
+
+    /** Reparte las estrellas al azar y las dibuja (inicio de partida). */
+    method void scatter() {
+        var int i;
+        let i = 0;
+        while (i < n) {
+            let sx[i] = Rng.next(512);
+            let sy[i] = Config.playTop() + Rng.next((Config.playBottom() - Config.playTop()) + 1);
+            if ((i & 1) = 0) { let sv[i] = 1; } else { let sv[i] = 2; }
+            do Screen.setColor(true);
+            do Screen.drawPixel(sx[i], sy[i]);
+            let i = i + 1;
+        }
+        return;
+    }
+
+    /** Avanza todas las estrellas un frame. */
+    method void update(Array planets) {
+        var int i;
+        let i = 0;
+        while (i < n) {
+            if (~(covered(planets, sx[i], sy[i]))) {
+                do Screen.setColor(false);
+                do Screen.drawPixel(sx[i], sy[i]);
+            }
+            let sx[i] = sx[i] - sv[i];
+            if (sx[i] < 0) {                       // sale por la izquierda: reaparece a la derecha
+                let sx[i] = 511;
+                let sy[i] = Config.playTop() + Rng.next((Config.playBottom() - Config.playTop()) + 1);
+            }
+            if (~(covered(planets, sx[i], sy[i]))) {
+                do Screen.setColor(true);
+                do Screen.drawPixel(sx[i], sy[i]);
+            }
+            let i = i + 1;
+        }
+        return;
+    }
+
+    method boolean covered(Array planets, int x, int y) {
+        var int i;
+        var Planet p;
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let p = planets[i];
+            if (p.covers(x, y)) { return true; }
+            let i = i + 1;
+        }
+        return false;
+    }
+
+    method void dispose() {
+        do sx.dispose();
+        do sy.dispose();
+        do sv.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

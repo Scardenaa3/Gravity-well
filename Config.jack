@@ -1,0 +1,23 @@
+/**
+ * Config: parametros de ajuste de Gravity Well.
+ * Jack no tiene constantes, por eso se exponen como funciones.
+ * Todo el balance del juego (fisica, dificultad, dimensiones) se
+ * cambia aqui sin tocar las demas clases.
+ *
+ * Unidades de velocidad y aceleracion: 1/16 de pixel por frame
+ * (punto fijo de 4 bits, porque Jack no tiene decimales).
+ */
+class Config {
+    function int playTop()       { return 16;  }  // primera fila util (bajo el HUD)
+    function int playBottom()    { return 253; }  // ultima fila util
+    function int numPlanets()    { return 3;   }
+    function int numCapsules()   { return 2;   }
+    function int numStars()      { return 40;  }
+    function int frameMs()       { return 15;  }  // pausa por frame (Sys.wait)
+    function int shipRadius()    { return 4;   }
+    function int maxSpeed()      { return 80;  }  // 5 px por frame
+    function int thrust()        { return 4;   }  // empuje de las flechas
+    function int boost()         { return 40;  }  // impulso de la barra espaciadora
+    function int boostCooldown() { return 45;  }  // frames de recarga del impulso
+    function int gravityRange()  { return 100; }  // alcance de la gravedad (px)
+}

@@ -1,0 +1,13 @@
+/**
+ * Main: punto de entrada. Crea el juego y lo ejecuta.
+ * Gravity Well - Organizacion de Computadores - Examen Parcial 4
+ */
+class Main {
+    function void main() {
+        var Game game;
+        let game = Game.new();
+        do game.run();
+        do game.dispose();
+        return;
+    }
+}

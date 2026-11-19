@@ -1,0 +1,25 @@
+/**
+ * Rng: generador pseudoaleatorio (congruencial lineal de 15 bits).
+ * Jack no trae Random, asi que se implementa aqui.
+ *   seed(n+1) = (seed(n) * 25 + 13) mod 32768
+ * El modulo 32768 se obtiene con la mascara "& 32767".
+ * La semilla se toma del tiempo que el jugador tarda en pulsar una
+ * tecla en la pantalla de titulo.
+ */
+class Rng {
+    static int seed;
+
+    function void setSeed(int s) {
+        let seed = s & 32767;
+        if (seed = 0) { let seed = 1; }
+        return;
+    }
+
+    /** Devuelve un entero en el rango [0, max-1]. max debe ser >= 1. */
+    function int next(int max) {
+        var int v;
+        let seed = ((seed * 25) + 13) & 32767;
+        let v = seed / 4;                       // descarta los 2 bits bajos (baja calidad)
+        return v - ((v / max) * max);           // v mod max
+    }
+}

@@ -1,0 +1,107 @@
+/**
+ * Planet: cuerpo con masa que atrae a la nave.
+ *
+ * Optimizaciones de bajo nivel:
+ *  1. Tabla precalculada halfW[i] con el semiancho de cada fila del circulo
+ *     (se calcula una sola vez en init, no en cada frame).
+ *  2. Dibujo incremental: al desplazarse s pixeles a la izquierda solo se
+ *     borra la franja derecha y se pinta la franja izquierda de cada fila,
+ *     en vez de borrar y redibujar todo el circulo (sin parpadeo).
+ *  3. Recorte horizontal propio: Screen.drawCircle falla si el circulo no
+ *     cabe entero en pantalla, y los planetas entran y salen por los lados.
+ */
+class Planet {
+    field int cx, cy, r, mass;
+    field Array halfW;         // 2 * 17 + 1 filas como maximo
+
+    constructor Planet new() {
+        let halfW = Array.new(35);
+        let cx = -1000;        // inactivo: fuera de pantalla
+        let cy = 0;
+        let r = 0;
+        let mass = 0;
+        return this;
+    }
+
+    /** Radio segun la masa: masas 90..170 -> radios 12..16. */
+    function int radiusFor(int m) {
+        return 8 + (m / 20);
+    }
+
+    /** Coloca el planeta, calcula su tabla y lo dibuja. */
+    method void init(int x, int y, int m) {
+        var int i, dy;
+        let cx = x;
+        let cy = y;
+        let mass = m;
+        let r = Planet.radiusFor(m);
+        let i = 0;
+        while (i < ((2 * r) + 1)) {
+            let dy = i - r;
+            let halfW[i] = Math.sqrt((r * r) - (dy * dy));
+            let i = i + 1;
+        }
+        do drawFull();
+        return;
+    }
+
+    method int getX() { return cx; }
+    method int getY() { return cy; }
+    method int getRadius() { return r; }
+    method int getMass() { return mass; }
+
+    /** Caja contenedora (usada por el fondo de estrellas para no borrar el planeta). */
+    method boolean covers(int x, int y) {
+        return (Math.abs(x - cx) < (r + 1)) & (Math.abs(y - cy) < (r + 1));
+    }
+
+    /** Pinta una fila horizontal recortada a los limites de pantalla. */
+    method void paintRow(int y, int x1, int x2, boolean color) {
+        if (x1 < 0) { let x1 = 0; }
+        if (x2 > 511) { let x2 = 511; }
+        if (~(x1 > x2)) {
+            do Screen.setColor(color);
+            do Screen.drawRectangle(x1, y, x2, y);
+        }
+        return;
+    }
+
+    method void drawFull() {
+        var int i, w, y;
+        let i = 0;
+        while (i < ((2 * r) + 1)) {
+            let w = halfW[i];
+            let y = (cy - r) + i;
+            do paintRow(y, cx - w, cx + w, true);
+            let i = i + 1;
+        }
+        return;
+    }
+
+    /** Desplaza el planeta s pixeles a la izquierda actualizando solo lo que cambia. */
+    method void scrollLeft(int s) {
+        var int i, y, w, oldL, oldR, a, b;
+        let i = 0;
+        while (i < ((2 * r) + 1)) {
+            let y = (cy - r) + i;
+            let w = halfW[i];
+            let oldL = cx - w;
+            let oldR = cx + w;
+            // 1. borrar lo que dejo de pertenecer al circulo (franja derecha)
+            let a = Math.max((oldR - s) + 1, oldL);
+            do paintRow(y, a, oldR, false);
+            // 2. pintar lo nuevo (franja izquierda)
+            let b = Math.min(oldL - 1, oldR - s);
+            do paintRow(y, oldL - s, b, true);
+            let i = i + 1;
+        }
+        let cx = cx - s;
+        return;
+    }
+
+    method void dispose() {
+        do halfW.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

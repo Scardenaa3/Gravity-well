@@ -1,0 +1,36 @@
+function Config.playTop 0
+    push constant 16
+    return
+function Config.playBottom 0
+    push constant 253
+    return
+function Config.numPlanets 0
+    push constant 3
+    return
+function Config.numCapsules 0
+    push constant 2
+    return
+function Config.numStars 0
+    push constant 40
+    return
+function Config.frameMs 0
+    push constant 15
+    return
+function Config.shipRadius 0
+    push constant 4
+    return
+function Config.maxSpeed 0
+    push constant 80
+    return
+function Config.thrust 0
+    push constant 4
+    return
+function Config.boost 0
+    push constant 40
+    return
+function Config.boostCooldown 0
+    push constant 45
+    return
+function Config.gravityRange 0
+    push constant 100
+    return

@@ -1,0 +1,301 @@
+function Planet.new 0
+    push constant 5
+    call Memory.alloc 1
+    pop pointer 0
+    push constant 35
+    call Array.new 1
+    pop this 4
+    push constant 1000
+    neg
+    pop this 0
+    push constant 0
+    pop this 1
+    push constant 0
+    pop this 2
+    push constant 0
+    pop this 3
+    push pointer 0
+    return
+function Planet.radiusFor 0
+    push constant 8
+    push argument 0
+    push constant 20
+    call Math.divide 2
+    add
+    return
+function Planet.init 2
+    push argument 0
+    pop pointer 0
+    push argument 1
+    pop this 0
+    push argument 2
+    pop this 1
+    push argument 3
+    pop this 3
+    push argument 3
+    call Planet.radiusFor 1
+    pop this 2
+    push constant 0
+    pop local 0
+label Planet_0
+    push local 0
+    push constant 2
+    push this 2
+    call Math.multiply 2
+    push constant 1
+    add
+    lt
+    not
+    if-goto Planet_1
+    push local 0
+    push this 2
+    sub
+    pop local 1
+    push local 0
+    push this 4
+    add
+    push this 2
+    push this 2
+    call Math.multiply 2
+    push local 1
+    push local 1
+    call Math.multiply 2
+    sub
+    call Math.sqrt 1
+    pop temp 0
+    pop pointer 1
+    push temp 0
+    pop that 0
+    push local 0
+    push constant 1
+    add
+    pop local 0
+    goto Planet_0
+label Planet_1
+    push pointer 0
+    call Planet.drawFull 1
+    pop temp 0
+    push constant 0
+    return
+function Planet.getX 0
+    push argument 0
+    pop pointer 0
+    push this 0
+    return
+function Planet.getY 0
+    push argument 0
+    pop pointer 0
+    push this 1
+    return
+function Planet.getRadius 0
+    push argument 0
+    pop pointer 0
+    push this 2
+    return
+function Planet.getMass 0
+    push argument 0
+    pop pointer 0
+    push this 3
+    return
+function Planet.covers 0
+    push argument 0
+    pop pointer 0
+    push argument 1
+    push this 0
+    sub
+    call Math.abs 1
+    push this 2
+    push constant 1
+    add
+    lt
+    push argument 2
+    push this 1
+    sub
+    call Math.abs 1
+    push this 2
+    push constant 1
+    add
+    lt
+    and
+    return
+function Planet.paintRow 0
+    push argument 0
+    pop pointer 0
+    push argument 2
+    push constant 0
+    lt
+    not
+    if-goto Planet_3
+    push constant 0
+    pop argument 2
+    goto Planet_2
+label Planet_3
+label Planet_2
+    push argument 3
+    push constant 511
+    gt
+    not
+    if-goto Planet_5
+    push constant 511
+    pop argument 3
+    goto Planet_4
+label Planet_5
+label Planet_4
+    push argument 2
+    push argument 3
+    gt
+    not
+    not
+    if-goto Planet_7
+    push argument 4
+    call Screen.setColor 1
+    pop temp 0
+    push argument 2
+    push argument 1
+    push argument 3
+    push argument 1
+    call Screen.drawRectangle 4
+    pop temp 0
+    goto Planet_6
+label Planet_7
+label Planet_6
+    push constant 0
+    return
+function Planet.drawFull 3
+    push argument 0
+    pop pointer 0
+    push constant 0
+    pop local 0
+label Planet_8
+    push local 0
+    push constant 2
+    push this 2
+    call Math.multiply 2
+    push constant 1
+    add
+    lt
+    not
+    if-goto Planet_9
+    push local 0
+    push this 4
+    add
+    pop pointer 1
+    push that 0
+    pop local 1
+    push this 1
+    push this 2
+    sub
+    push local 0
+    add
+    pop local 2
+    push pointer 0
+    push local 2
+    push this 0
+    push local 1
+    sub
+    push this 0
+    push local 1
+    add
+    push constant 1
+    neg
+    call Planet.paintRow 5
+    pop temp 0
+    push local 0
+    push constant 1
+    add
+    pop local 0
+    goto Planet_8
+label Planet_9
+    push constant 0
+    return
+function Planet.scrollLeft 7
+    push argument 0
+    pop pointer 0
+    push constant 0
+    pop local 0
+label Planet_10
+    push local 0
+    push constant 2
+    push this 2
+    call Math.multiply 2
+    push constant 1
+    add
+    lt
+    not
+    if-goto Planet_11
+    push this 1
+    push this 2
+    sub
+    push local 0
+    add
+    pop local 1
+    push local 0
+    push this 4
+    add
+    pop pointer 1
+    push that 0
+    pop local 2
+    push this 0
+    push local 2
+    sub
+    pop local 3
+    push this 0
+    push local 2
+    add
+    pop local 4
+    push local 4
+    push argument 1
+    sub
+    push constant 1
+    add
+    push local 3
+    call Math.max 2
+    pop local 5
+    push pointer 0
+    push local 1
+    push local 5
+    push local 4
+    push constant 0
+    call Planet.paintRow 5
+    pop temp 0
+    push local 3
+    push constant 1
+    sub
+    push local 4
+    push argument 1
+    sub
+    call Math.min 2
+    pop local 6
+    push pointer 0
+    push local 1
+    push local 3
+    push argument 1
+    sub
+    push local 6
+    push constant 1
+    neg
+    call Planet.paintRow 5
+    pop temp 0
+    push local 0
+    push constant 1
+    add
+    pop local 0
+    goto Planet_10
+label Planet_11
+    push this 0
+    push argument 1
+    sub
+    pop this 0
+    push constant 0
+    return
+function Planet.dispose 0
+    push argument 0
+    pop pointer 0
+    push this 4
+    call Array.dispose 1
+    pop temp 0
+    push pointer 0
+    call Memory.deAlloc 1
+    pop temp 0
+    push constant 0
+    return

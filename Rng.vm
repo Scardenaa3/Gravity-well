@@ -1,0 +1,38 @@
+function Rng.setSeed 0
+    push argument 0
+    push constant 32767
+    and
+    pop static 0
+    push static 0
+    push constant 0
+    eq
+    not
+    if-goto Rng_1
+    push constant 1
+    pop static 0
+    goto Rng_0
+label Rng_1
+label Rng_0
+    push constant 0
+    return
+function Rng.next 1
+    push static 0
+    push constant 25
+    call Math.multiply 2
+    push constant 13
+    add
+    push constant 32767
+    and
+    pop static 0
+    push static 0
+    push constant 4
+    call Math.divide 2
+    pop local 0
+    push local 0
+    push local 0
+    push argument 0
+    call Math.divide 2
+    push argument 0
+    call Math.multiply 2
+    sub
+    return

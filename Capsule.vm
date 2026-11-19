@@ -1,0 +1,121 @@
+function Capsule.new 0
+    push constant 2
+    call Memory.alloc 1
+    pop pointer 0
+    push constant 1000
+    neg
+    pop this 0
+    push constant 0
+    pop this 1
+    push pointer 0
+    return
+function Capsule.init 0
+    push argument 0
+    pop pointer 0
+    push argument 1
+    pop this 0
+    push argument 2
+    pop this 1
+    push pointer 0
+    call Capsule.draw 1
+    pop temp 0
+    push constant 0
+    return
+function Capsule.getX 0
+    push argument 0
+    pop pointer 0
+    push this 0
+    return
+function Capsule.getY 0
+    push argument 0
+    pop pointer 0
+    push this 1
+    return
+function Capsule.scrollLeft 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    call Capsule.erase 1
+    pop temp 0
+    push this 0
+    push argument 1
+    sub
+    pop this 0
+    push pointer 0
+    call Capsule.draw 1
+    pop temp 0
+    push constant 0
+    return
+function Capsule.draw 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    push constant 3
+    push constant 1
+    neg
+    call Capsule.box 3
+    pop temp 0
+    push pointer 0
+    push constant 1
+    push constant 0
+    call Capsule.box 3
+    pop temp 0
+    push constant 0
+    return
+function Capsule.erase 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    push constant 3
+    push constant 0
+    call Capsule.box 3
+    pop temp 0
+    push constant 0
+    return
+function Capsule.box 2
+    push argument 0
+    pop pointer 0
+    push this 0
+    push argument 1
+    sub
+    push constant 0
+    call Math.max 2
+    pop local 0
+    push this 0
+    push argument 1
+    add
+    push constant 511
+    call Math.min 2
+    pop local 1
+    push local 0
+    push local 1
+    gt
+    not
+    not
+    if-goto Capsule_1
+    push argument 2
+    call Screen.setColor 1
+    pop temp 0
+    push local 0
+    push this 1
+    push argument 1
+    sub
+    push local 1
+    push this 1
+    push argument 1
+    add
+    call Screen.drawRectangle 4
+    pop temp 0
+    goto Capsule_0
+label Capsule_1
+label Capsule_0
+    push constant 0
+    return
+function Capsule.dispose 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    call Memory.deAlloc 1
+    pop temp 0
+    push constant 0
+    return

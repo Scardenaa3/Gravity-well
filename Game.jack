@@ -1,0 +1,501 @@
+/**
+ * Game: bucle principal y coordinacion de todos los objetos.
+ *
+ * Orden de cada frame (importa para que el dibujo no se corrompa):
+ *   1. leer teclado (no bloqueante) y aplicar empuje
+ *   2. planetas: desplazar, reciclar, gravedad y colision
+ *   3. estrellas (respetando la caja de los planetas)
+ *   4. capsulas: desplazar, reciclar, recoger
+ *   5. nave: integrar, rebotar y redibujar (se dibuja al final, queda encima)
+ *   6. puntaje, nivel, record y HUD
+ *
+ * IMPORTANTE (memoria): en Jack cada vez que se ejecuta un texto entre
+ * comillas se crea un String nuevo en el heap y nunca se libera (no hay
+ * recolector de basura). Por eso TODOS los textos se crean UNA sola vez en
+ * initTexts() y despues solo se reutilizan. Escribir "texto" dentro de una
+ * funcion que se llama muchas veces agota el heap (error ERR6).
+ *
+ * El record vive en RAM: dura mientras el programa este cargado
+ * (Hack no tiene archivos para guardarlo de forma permanente).
+ */
+class Game {
+    field Ship ship;
+    field Array planets, capsules;
+    field Starfield stars;
+    field int score, caps, level, scroll, frames, best;
+    field boolean alive, quit, hudDirty, lastReady;
+    field String name, bestName;                      // jugador actual y dueno del record
+    field String sTitle, sKeys, sHelp1, sHelp2, sStart, sAsk, sAsk2, sCursor;
+    field String sScoreL, sCapsL, sLvL, sBoostL, sOk, sNo, sBestL, sNewHud;
+    field String sGameOver, sScoreEnd, sNewRec, sRecord, sBy, sNoRecord, sCont;
+
+    constructor Game new() {
+        var int i;
+        let best = 0;
+        do initTexts();
+        let ship = Ship.new();
+        let stars = Starfield.new(Config.numStars());
+        let planets = Array.new(Config.numPlanets());
+        let capsules = Array.new(Config.numCapsules());
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let planets[i] = Planet.new();
+            let i = i + 1;
+        }
+        let i = 0;
+        while (i < Config.numCapsules()) {
+            let capsules[i] = Capsule.new();
+            let i = i + 1;
+        }
+        return this;
+    }
+
+    /** Crea todos los textos una sola vez (ver nota de memoria arriba). */
+    method void initTexts() {
+        let name = String.new(8);
+        let bestName = String.new(8);
+        let sTitle = "G R A V I T Y   W E L L";
+        let sKeys = "Arrows: thrust    SPACE: forward boost    ESC: exit";
+        let sHelp1 = "Use the gravity of the planets to curve your path.";
+        let sHelp2 = "Collect capsules. Do not touch a planet!";
+        let sStart = "Press any key to start";
+        let sAsk = "Type your name (letters or digits) and press ENTER";
+        let sAsk2 = "ENTER alone keeps the previous name";
+        let sCursor = "_ ";
+        let sScoreL = " SCORE ";
+        let sCapsL = " CAPS ";
+        let sLvL = " LV ";
+        let sBoostL = " BOOST ";
+        let sOk = "OK";
+        let sNo = "--";
+        let sBestL = " BEST ";
+        let sNewHud = " NEW RECORD!";
+        let sGameOver = "G A M E   O V E R";
+        let sScoreEnd = " - Score: ";
+        let sNewRec = "** NEW RECORD! **";
+        let sRecord = "Record: ";
+        let sBy = " by ";
+        let sNoRecord = "No record yet. Be the first!";
+        let sCont = "Press any key to continue";
+        return;
+    }
+
+    /** Ciclo: titulo -> nombre -> partida -> game over -> titulo ... (ESC en el titulo sale). */
+    method void run() {
+        var int seedCount;
+        let quit = false;
+        while (~quit) {
+            let seedCount = showTitle();
+            if (~quit) {
+                do Rng.setSeed(seedCount);
+                do askName();
+                do newGame();
+                while (alive) {
+                    do step();
+                    do Sys.wait(Config.frameMs());
+                }
+                do gameOver();
+            }
+        }
+        do Screen.clearScreen();
+        do Output.moveCursor(10, 25);
+        do Output.printString("See you soon!");
+        return;
+    }
+
+    /** Pantalla de titulo. Devuelve cuantas vueltas dio el contador (semilla aleatoria). */
+    method int showTitle() {
+        var int count, key;
+        do Screen.clearScreen();
+        do Output.moveCursor(5, 20);
+        do Output.printString(sTitle);
+        do Output.moveCursor(8, 8);
+        do Output.printString(sKeys);
+        do Output.moveCursor(10, 8);
+        do Output.printString(sHelp1);
+        do Output.moveCursor(11, 8);
+        do Output.printString(sHelp2);
+        do Output.moveCursor(14, 22);
+        do Output.printString(sStart);
+        if (best > 0) {
+            do Output.moveCursor(17, 20);
+            do Output.printString(sRecord);
+            do Output.printInt(best);
+            do Output.printString(sBy);
+            do Output.printString(bestName);
+        } else {
+            do Output.moveCursor(17, 18);
+            do Output.printString(sNoRecord);
+        }
+        let count = 0;
+        let key = 0;
+        while (key = 0) {
+            let key = Keyboard.keyPressed();
+            let count = count + 1;
+        }
+        if (key = 140) { let quit = true; }
+        while (~(Keyboard.keyPressed() = 0)) { do Sys.wait(10); }   // espera a soltar la tecla
+        return count;
+    }
+
+    /**
+     * Pide el nombre del jugador (maximo 8 caracteres, letras o digitos).
+     * Lectura propia con keyPressed en vez de Keyboard.readLine para no
+     * reservar memoria nueva y poder limitar la longitud.
+     * ENTER sin escribir nada conserva el nombre anterior.
+     */
+    method void askName() {
+        var int key;
+        var boolean typed, done, redraw;
+        do Screen.clearScreen();
+        do Output.moveCursor(7, 6);
+        do Output.printString(sAsk);
+        if (name.length() > 0) {
+            do Output.moveCursor(9, 14);
+            do Output.printString(sAsk2);
+        }
+        let typed = false;
+        let done = false;
+        let redraw = true;
+        while (~done) {
+            if (redraw) {
+                do Output.moveCursor(12, 28);
+                do Output.printString(name);
+                do Output.printString(sCursor);      // "_ " tambien borra el caracter eliminado
+                let redraw = false;
+            }
+            let key = Keyboard.keyPressed();
+            if (~(key = 0)) {
+                if (key = 128) {                      // ENTER
+                    if (name.length() > 0) { let done = true; }
+                } else {
+                    if (key = 129) {                  // BACKSPACE
+                        let typed = true;
+                        if (name.length() > 0) { do name.eraseLastChar(); }
+                        let redraw = true;
+                    } else {
+                        if (isAllowed(key)) {
+                            if (~typed) {             // primera letra: descarta el nombre anterior
+                                do clearName();
+                                let typed = true;
+                            }
+                            if ((key > 96) & (key < 123)) { let key = key - 32; }   // a-z -> A-Z
+                            if (name.length() < 8) { do name.appendChar(key); }
+                            let redraw = true;
+                        }
+                    }
+                }
+                while (~(Keyboard.keyPressed() = 0)) { do Sys.wait(10); }   // espera a soltar
+            }
+        }
+        return;
+    }
+
+    /** true si la tecla es una letra o un digito. */
+    method boolean isAllowed(int key) {
+        return (((key > 47) & (key < 58)) | ((key > 64) & (key < 91))) | ((key > 96) & (key < 123));
+    }
+
+    method void clearName() {
+        while (name.length() > 0) { do name.eraseLastChar(); }
+        return;
+    }
+
+    /** Guarda el record: copia el nombre actual a bestName y fija el nuevo maximo. */
+    method void saveRecord() {
+        var int i;
+        while (bestName.length() > 0) { do bestName.eraseLastChar(); }
+        let i = 0;
+        while (i < name.length()) {
+            do bestName.appendChar(name.charAt(i));
+            let i = i + 1;
+        }
+        let best = score;
+        return;
+    }
+
+    /** Prepara una partida nueva. */
+    method void newGame() {
+        var int i;
+        do Screen.clearScreen();
+        do Screen.setColor(true);
+        do Screen.drawLine(0, 13, 511, 13);              // separador del HUD
+        let score = 0;
+        let caps = 0;
+        let level = 1;
+        let scroll = 2;
+        let frames = 0;
+        let alive = true;
+        let hudDirty = true;
+        let lastReady = true;
+        do stars.scatter();
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            do placePlanet(i, 260 + (i * 190));
+            let i = i + 1;
+        }
+        let i = 0;
+        while (i < Config.numCapsules()) {
+            do placeCapsule(i, 220 + (i * 160) + Rng.next(60));
+            let i = i + 1;
+        }
+        do ship.reset();
+        do drawHud();
+        return;
+    }
+
+    /** Un frame de juego. */
+    method void step() {
+        var int key, i, s, newLevel;
+        var Planet p;
+        var Capsule c;
+
+        // 1. teclado (no bloqueante)
+        let key = Keyboard.keyPressed();
+        do ship.applyInput(key);
+        let s = scroll;
+
+        // 2. planetas
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let p = planets[i];
+            do p.scrollLeft(s);
+            if ((p.getX() + p.getRadius()) < 0) {           // salio por la izquierda
+                do placePlanet(i, nextPlanetX());
+            }
+            if (ship.pullFrom(p)) { let alive = false; }    // gravedad / choque
+            let i = i + 1;
+        }
+
+        // 3. fondo de estrellas
+        do stars.update(planets);
+
+        // 4. capsulas
+        let i = 0;
+        while (i < Config.numCapsules()) {
+            let c = capsules[i];
+            do c.scrollLeft(s);
+            if (c.getX() < (-8)) {
+                do placeCapsule(i, 530 + Rng.next(150));
+            } else {
+                if ((Math.abs(c.getX() - ship.getX()) < 9) & (Math.abs(c.getY() - ship.getY()) < 9)) {
+                    do c.erase();
+                    let score = score + 10;
+                    let caps = caps + 1;
+                    let hudDirty = true;
+                    do placeCapsule(i, 530 + Rng.next(150));
+                }
+            }
+            let i = i + 1;
+        }
+
+        // 5. nave
+        do ship.move();
+
+        // 6. puntaje por supervivencia, nivel y HUD
+        let frames = frames + 1;
+        if (frames = 30) {
+            let frames = 0;
+            let score = score + 1;
+            let hudDirty = true;
+        }
+        let newLevel = 1 + (score / 100);
+        if (newLevel > 4) { let newLevel = 4; }
+        if (~(newLevel = level)) {
+            let level = newLevel;
+            let scroll = 1 + level;                          // el mundo se acelera
+            let hudDirty = true;
+        }
+        if (~(ship.ready() = lastReady)) {
+            let lastReady = ship.ready();
+            let hudDirty = true;
+        }
+        if (hudDirty) { do drawHud(); }
+        return;
+    }
+
+    /** Elige masa y altura al azar, evitando capsulas cercanas, y coloca el planeta i en x. */
+    method void placePlanet(int i, int x) {
+        var int m, r, y, tries, span;
+        var Planet p;
+        let p = planets[i];
+        let m = 90 + Rng.next(81);
+        let r = Planet.radiusFor(m);
+        let span = ((Config.playBottom() - Config.playTop()) + 1) - (2 * r);
+        let y = (Config.playTop() + r) + Rng.next(span);
+        let tries = 0;
+        while ((tries < 6) & (hitsCapsule(x, y, r))) {
+            let y = (Config.playTop() + r) + Rng.next(span);
+            let tries = tries + 1;
+        }
+        do p.init(x, y, m);
+        return;
+    }
+
+    /** Coloca la capsula i en x con una altura al azar que no choque con planetas. */
+    method void placeCapsule(int i, int x) {
+        var int y, tries, span;
+        var Capsule c;
+        let c = capsules[i];
+        let span = (Config.playBottom() - Config.playTop()) - 15;   // y en [24, 245]
+        let y = (Config.playTop() + 8) + Rng.next(span);
+        let tries = 0;
+        while ((tries < 8) & (hitsPlanet(x, y, 6))) {
+            let y = (Config.playTop() + 8) + Rng.next(span);
+            let tries = tries + 1;
+        }
+        do c.init(x, y);
+        return;
+    }
+
+    /** x donde reaparece un planeta: detras del mas lejano, con separacion que baja con el nivel. */
+    method int nextPlanetX() {
+        var int i, far, spacing;
+        var Planet p;
+        let far = 0;
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let p = planets[i];
+            if (p.getX() > far) { let far = p.getX(); }
+            let i = i + 1;
+        }
+        let spacing = 215 - (level * 15);
+        return Math.max(530, far + spacing) + Rng.next(50);
+    }
+
+    method boolean hitsPlanet(int x, int y, int rad) {
+        var int i;
+        var Planet p;
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let p = planets[i];
+            if ((Math.abs(x - p.getX()) < ((rad + p.getRadius()) + 4)) & (Math.abs(y - p.getY()) < ((rad + p.getRadius()) + 4))) {
+                return true;
+            }
+            let i = i + 1;
+        }
+        return false;
+    }
+
+    method boolean hitsCapsule(int x, int y, int rad) {
+        var int i;
+        var Capsule c;
+        let i = 0;
+        while (i < Config.numCapsules()) {
+            let c = capsules[i];
+            if ((Math.abs(x - c.getX()) < (rad + 10)) & (Math.abs(y - c.getY()) < (rad + 10))) {
+                return true;
+            }
+            let i = i + 1;
+        }
+        return false;
+    }
+
+    /**
+     * Marcador en la fila de texto 0: jugador, puntaje, capsulas, nivel,
+     * impulso y record. Si el jugador supera el record vigente aparece
+     * NEW RECORD! en vivo. Solo se redibuja cuando algo cambia.
+     */
+    method void drawHud() {
+        do Screen.setColor(false);
+        do Screen.drawRectangle(0, 0, 511, 11);          // limpia la fila de texto
+        do Output.moveCursor(0, 0);
+        do Output.printString(name);
+        do Output.printString(sScoreL);
+        do Output.printInt(score);
+        do Output.printString(sCapsL);
+        do Output.printInt(caps);
+        do Output.printString(sLvL);
+        do Output.printInt(level);
+        do Output.printString(sBoostL);
+        if (ship.ready()) { do Output.printString(sOk); } else { do Output.printString(sNo); }
+        if ((score > best) & (best > 0)) {
+            do Output.printString(sNewHud);
+        } else {
+            do Output.printString(sBestL);
+            do Output.printInt(best);
+        }
+        let hudDirty = false;
+        return;
+    }
+
+    /** Pantalla final: puntaje, y NEW RECORD! si se supero el maximo. */
+    method void gameOver() {
+        var boolean isRecord;
+        let isRecord = (score > best);
+        if (isRecord) { do saveRecord(); }
+        do Sys.wait(500);
+        do Screen.clearScreen();
+        do Output.moveCursor(7, 23);
+        do Output.printString(sGameOver);
+        do Output.moveCursor(9, 22);
+        do Output.printString(name);
+        do Output.printString(sScoreEnd);
+        do Output.printInt(score);
+        if (isRecord) {
+            do Output.moveCursor(11, 23);
+            do Output.printString(sNewRec);
+        } else {
+            do Output.moveCursor(11, 20);
+            do Output.printString(sRecord);
+            do Output.printInt(best);
+            do Output.printString(sBy);
+            do Output.printString(bestName);
+        }
+        do Output.moveCursor(14, 19);
+        do Output.printString(sCont);
+        while (~(Keyboard.keyPressed() = 0)) { do Sys.wait(10); }   // suelta la tecla de empuje
+        while (Keyboard.keyPressed() = 0) { do Sys.wait(10); }      // espera una tecla nueva
+        while (~(Keyboard.keyPressed() = 0)) { do Sys.wait(10); }
+        return;
+    }
+
+    method void dispose() {
+        var int i;
+        var Planet p;
+        var Capsule c;
+        let i = 0;
+        while (i < Config.numPlanets()) {
+            let p = planets[i];
+            do p.dispose();
+            let i = i + 1;
+        }
+        let i = 0;
+        while (i < Config.numCapsules()) {
+            let c = capsules[i];
+            do c.dispose();
+            let i = i + 1;
+        }
+        do planets.dispose();
+        do capsules.dispose();
+        do stars.dispose();
+        do ship.dispose();
+        do name.dispose();
+        do bestName.dispose();
+        do sTitle.dispose();
+        do sKeys.dispose();
+        do sHelp1.dispose();
+        do sHelp2.dispose();
+        do sStart.dispose();
+        do sAsk.dispose();
+        do sAsk2.dispose();
+        do sCursor.dispose();
+        do sScoreL.dispose();
+        do sCapsL.dispose();
+        do sLvL.dispose();
+        do sBoostL.dispose();
+        do sOk.dispose();
+        do sNo.dispose();
+        do sBestL.dispose();
+        do sNewHud.dispose();
+        do sGameOver.dispose();
+        do sScoreEnd.dispose();
+        do sNewRec.dispose();
+        do sRecord.dispose();
+        do sBy.dispose();
+        do sNoRecord.dispose();
+        do sCont.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

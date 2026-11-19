@@ -1,0 +1,398 @@
+function Ship.new 0
+    push constant 5
+    call Memory.alloc 1
+    pop pointer 0
+    push pointer 0
+    call Ship.reset 1
+    pop temp 0
+    push pointer 0
+    return
+function Ship.reset 0
+    push argument 0
+    pop pointer 0
+    push constant 1440
+    pop this 0
+    push constant 2160
+    pop this 1
+    push constant 0
+    pop this 2
+    push constant 0
+    pop this 3
+    push constant 0
+    pop this 4
+    push pointer 0
+    call Ship.draw 1
+    pop temp 0
+    push constant 0
+    return
+function Ship.getX 0
+    push argument 0
+    pop pointer 0
+    push this 0
+    push constant 16
+    call Math.divide 2
+    return
+function Ship.getY 0
+    push argument 0
+    pop pointer 0
+    push this 1
+    push constant 16
+    call Math.divide 2
+    return
+function Ship.ready 0
+    push argument 0
+    pop pointer 0
+    push this 4
+    push constant 0
+    eq
+    return
+function Ship.draw 0
+    push argument 0
+    pop pointer 0
+    push constant 1
+    neg
+    call Screen.setColor 1
+    pop temp 0
+    push this 0
+    push constant 16
+    call Math.divide 2
+    push this 1
+    push constant 16
+    call Math.divide 2
+    call Config.shipRadius 0
+    call Screen.drawCircle 3
+    pop temp 0
+    push constant 0
+    return
+function Ship.erase 0
+    push argument 0
+    pop pointer 0
+    push constant 0
+    call Screen.setColor 1
+    pop temp 0
+    push this 0
+    push constant 16
+    call Math.divide 2
+    push this 1
+    push constant 16
+    call Math.divide 2
+    call Config.shipRadius 0
+    call Screen.drawCircle 3
+    pop temp 0
+    push constant 0
+    return
+function Ship.applyInput 1
+    push argument 0
+    pop pointer 0
+    call Config.thrust 0
+    pop local 0
+    push this 4
+    push constant 0
+    gt
+    not
+    if-goto Ship_1
+    push this 4
+    push constant 1
+    sub
+    pop this 4
+    goto Ship_0
+label Ship_1
+label Ship_0
+    push argument 1
+    push constant 130
+    eq
+    not
+    if-goto Ship_3
+    push this 2
+    push local 0
+    sub
+    pop this 2
+    goto Ship_2
+label Ship_3
+label Ship_2
+    push argument 1
+    push constant 132
+    eq
+    not
+    if-goto Ship_5
+    push this 2
+    push local 0
+    add
+    pop this 2
+    goto Ship_4
+label Ship_5
+label Ship_4
+    push argument 1
+    push constant 131
+    eq
+    not
+    if-goto Ship_7
+    push this 3
+    push local 0
+    sub
+    pop this 3
+    goto Ship_6
+label Ship_7
+label Ship_6
+    push argument 1
+    push constant 133
+    eq
+    not
+    if-goto Ship_9
+    push this 3
+    push local 0
+    add
+    pop this 3
+    goto Ship_8
+label Ship_9
+label Ship_8
+    push argument 1
+    push constant 32
+    eq
+    push this 4
+    push constant 0
+    eq
+    and
+    not
+    if-goto Ship_11
+    push this 2
+    call Config.boost 0
+    add
+    pop this 2
+    call Config.boostCooldown 0
+    pop this 4
+    goto Ship_10
+label Ship_11
+label Ship_10
+    push constant 0
+    return
+function Ship.pullFrom 7
+    push argument 0
+    pop pointer 0
+    push argument 1
+    call Planet.getX 1
+    push this 0
+    push constant 16
+    call Math.divide 2
+    sub
+    pop local 0
+    push argument 1
+    call Planet.getY 1
+    push this 1
+    push constant 16
+    call Math.divide 2
+    sub
+    pop local 1
+    push local 0
+    call Math.abs 1
+    call Config.gravityRange 0
+    lt
+    push local 1
+    call Math.abs 1
+    call Config.gravityRange 0
+    lt
+    and
+    not
+    if-goto Ship_13
+    push local 0
+    push local 0
+    call Math.multiply 2
+    push local 1
+    push local 1
+    call Math.multiply 2
+    add
+    pop local 2
+    push argument 1
+    call Planet.getRadius 1
+    call Config.shipRadius 0
+    add
+    push constant 1
+    add
+    pop local 3
+    push local 2
+    push local 3
+    push local 3
+    call Math.multiply 2
+    lt
+    not
+    if-goto Ship_15
+    push constant 1
+    neg
+    return
+    goto Ship_14
+label Ship_15
+label Ship_14
+    push argument 1
+    call Planet.getMass 1
+    pop local 6
+    push local 6
+    push local 0
+    call Math.abs 1
+    call Math.multiply 2
+    push local 2
+    call Math.divide 2
+    pop local 4
+    push local 6
+    push local 1
+    call Math.abs 1
+    call Math.multiply 2
+    push local 2
+    call Math.divide 2
+    pop local 5
+    push local 0
+    push constant 0
+    lt
+    not
+    if-goto Ship_17
+    push local 4
+    neg
+    pop local 4
+    goto Ship_16
+label Ship_17
+label Ship_16
+    push local 1
+    push constant 0
+    lt
+    not
+    if-goto Ship_19
+    push local 5
+    neg
+    pop local 5
+    goto Ship_18
+label Ship_19
+label Ship_18
+    push this 2
+    push local 4
+    add
+    pop this 2
+    push this 3
+    push local 5
+    add
+    pop this 3
+    goto Ship_12
+label Ship_13
+label Ship_12
+    push constant 0
+    return
+function Ship.move 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    call Ship.erase 1
+    pop temp 0
+    push this 2
+    call Config.maxSpeed 0
+    call Ship.limit 2
+    pop this 2
+    push this 3
+    call Config.maxSpeed 0
+    call Ship.limit 2
+    pop this 3
+    push this 0
+    push this 2
+    add
+    pop this 0
+    push this 1
+    push this 3
+    add
+    pop this 1
+    push this 0
+    push constant 64
+    lt
+    not
+    if-goto Ship_21
+    push constant 64
+    pop this 0
+    push this 2
+    call Ship.rebound 1
+    pop this 2
+    goto Ship_20
+label Ship_21
+label Ship_20
+    push this 0
+    push constant 8112
+    gt
+    not
+    if-goto Ship_23
+    push constant 8112
+    pop this 0
+    push this 2
+    call Ship.rebound 1
+    neg
+    pop this 2
+    goto Ship_22
+label Ship_23
+label Ship_22
+    push this 1
+    push constant 320
+    lt
+    not
+    if-goto Ship_25
+    push constant 320
+    pop this 1
+    push this 3
+    call Ship.rebound 1
+    pop this 3
+    goto Ship_24
+label Ship_25
+label Ship_24
+    push this 1
+    push constant 4016
+    gt
+    not
+    if-goto Ship_27
+    push constant 4016
+    pop this 1
+    push this 3
+    call Ship.rebound 1
+    neg
+    pop this 3
+    goto Ship_26
+label Ship_27
+label Ship_26
+    push pointer 0
+    call Ship.draw 1
+    pop temp 0
+    push constant 0
+    return
+function Ship.limit 0
+    push argument 0
+    push argument 1
+    gt
+    not
+    if-goto Ship_29
+    push argument 1
+    return
+    goto Ship_28
+label Ship_29
+label Ship_28
+    push argument 0
+    push argument 1
+    neg
+    lt
+    not
+    if-goto Ship_31
+    push argument 1
+    neg
+    return
+    goto Ship_30
+label Ship_31
+label Ship_30
+    push argument 0
+    return
+function Ship.rebound 0
+    push argument 0
+    call Math.abs 1
+    push constant 3
+    call Math.multiply 2
+    push constant 4
+    call Math.divide 2
+    return
+function Ship.dispose 0
+    push argument 0
+    pop pointer 0
+    push pointer 0
+    call Memory.deAlloc 1
+    pop temp 0
+    push constant 0
+    return

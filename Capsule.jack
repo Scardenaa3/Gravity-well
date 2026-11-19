@@ -1,0 +1,59 @@
+/**
+ * Capsule: objeto coleccionable (cuadro de 7x7 con centro hueco).
+ * Se desplaza con el mismo scroll que los planetas.
+ * El dibujo se recorta horizontalmente porque entra y sale por los bordes.
+ */
+class Capsule {
+    field int cx, cy;
+
+    constructor Capsule new() {
+        let cx = -1000;        // inactiva: fuera de pantalla
+        let cy = 0;
+        return this;
+    }
+
+    method void init(int x, int y) {
+        let cx = x;
+        let cy = y;
+        do draw();
+        return;
+    }
+
+    method int getX() { return cx; }
+    method int getY() { return cy; }
+
+    method void scrollLeft(int s) {
+        do erase();
+        let cx = cx - s;
+        do draw();
+        return;
+    }
+
+    method void draw() {
+        do box(3, true);       // marco 7x7
+        do box(1, false);      // hueco 3x3
+        return;
+    }
+
+    method void erase() {
+        do box(3, false);
+        return;
+    }
+
+    /** Rectangulo centrado de semilado h, recortado a [0, 511] en x. */
+    method void box(int h, boolean color) {
+        var int x1, x2;
+        let x1 = Math.max(cx - h, 0);
+        let x2 = Math.min(cx + h, 511);
+        if (~(x1 > x2)) {
+            do Screen.setColor(color);
+            do Screen.drawRectangle(x1, cy - h, x2, cy + h);
+        }
+        return;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
